@@ -1,205 +1,171 @@
-🧠 Mini RAG Project – Local Retrieval-Augmented Generation Assistant
+# 🧠 Mini RAG — Local Retrieval-Augmented Generation Assistant
 
-A lightweight, fully local Retrieval-Augmented Generation (RAG) system built in Python using:
+A lightweight, fully local RAG system that answers questions grounded strictly in your documents — no cloud, no API keys, no data leaving your machine.
 
-FAISS (vector similarity search)
+---
 
-SentenceTransformers (embeddings)
+## ✨ Features
 
-Ollama + LLaMA3 (local LLM inference)
+- **Multi-document support** — drop in as many `.txt` files as you need
+- **Local embeddings** — powered by SentenceTransformers (MiniLM)
+- **FAISS vector search** — fast similarity retrieval over your document chunks
+- **Local LLM** — LLaMA3 via Ollama runs entirely on your hardware
+- **Source tracking** — see exactly which chunks informed each answer
+- **Interactive CLI** — simple question-answer loop, no UI overhead
 
-This project demonstrates how to build a document-grounded AI assistant that answers questions strictly based on uploaded documents.
+---
 
-🚀 Features
+## 🏗 Architecture
 
-✅ Multi-document support
+```
+Text Documents
+      │
+      ▼
+  Chunking
+      │
+      ▼
+ Embeddings (MiniLM)
+      │
+      ▼
+  FAISS Index ◄──── User Query ──► Query Embedding
+      │                                    │
+      └──────────► Top-K Chunks ◄──────────┘
+                        │
+                        ▼
+              LLaMA3 via Ollama
+                        │
+                        ▼
+                  Final Answer
+```
 
-✅ Local embeddings
+---
 
-✅ FAISS vector database
+## 🛠 Tech Stack
 
-✅ Local LLM (LLaMA3 via Ollama)
+| Component | Tool |
+|---|---|
+| Language | Python 3.8+ |
+| Embeddings | SentenceTransformers (MiniLM) |
+| Vector Search | FAISS |
+| LLM | LLaMA3 |
+| LLM Runtime | Ollama |
+| ML Backend | PyTorch |
 
-✅ Interactive CLI assistant
+---
 
-✅ Source tracking for retrieved chunks
+## 📂 Project Structure
 
-✅ No cloud dependency
-
-🏗 Architecture
-                +------------------+
-                |  Text Documents  |
-                +------------------+
-                          |
-                          v
-                +------------------+
-                |   Chunking       |
-                +------------------+
-                          |
-                          v
-                +------------------+
-                |  Embeddings      |
-                | (MiniLM Model)   |
-                +------------------+
-                          |
-                          v
-                +------------------+
-                |   FAISS Index    |
-                +------------------+
-                          |
-User Query  --->   Embedding ---> Vector Search
-                          |
-                          v
-                +------------------+
-                |  Retrieved       |
-                |   Context        |
-                +------------------+
-                          |
-                          v
-                +------------------+
-                |   LLaMA3 (LLM)   |
-                |  via Ollama      |
-                +------------------+
-                          |
-                          v
-                      Final Answer
-
-🛠 Tech Stack
-
-Python 3.8+
-
-FAISS (vector search)
-
-SentenceTransformers
-
-Ollama
-
-LLaMA3 (local model)
-
-PyTorch
-
-📂 Project Structure
+```
 Mini-RAG-Project/
 │
 ├── documents/
-│   └── sample.txt
+│   └── sample.txt        # Add your .txt files here
 │
-├── rag.py
+├── rag.py                # Main application
 ├── requirements.txt
 └── README.md
+```
 
-⚙️ Installation
-1️⃣ Clone Repository
+---
+
+## ⚙️ Setup
+
+### 1. Clone the repository
+```bash
 git clone https://github.com/singhharshit24/Mini-RAG-Project.git
 cd Mini-RAG-Project
+```
 
-2️⃣ Create Virtual Environment
+### 2. Create and activate a virtual environment
+```bash
 python -m venv rag_env
-rag_env\Scripts\activate   # Windows
-# source rag_env/bin/activate   # Mac/Linux
 
-3️⃣ Install Dependencies
+# Windows
+rag_env\Scripts\activate
+
+# macOS / Linux
+source rag_env/bin/activate
+```
+
+### 3. Install Python dependencies
+```bash
 pip install -r requirements.txt
+```
 
-4️⃣ Install Ollama
+### 4. Install Ollama and pull LLaMA3
 
-Download from:
-https://ollama.com
-
-Pull LLaMA3 model:
-
+Download Ollama from [ollama.com](https://ollama.com), then run:
+```bash
 ollama pull llama3
+```
 
-▶️ How to Run
+---
 
-Make sure:
+## ▶️ Running the Assistant
 
-documents/ folder contains .txt files
+Make sure your `documents/` folder contains at least one `.txt` file and your virtual environment is active, then:
 
-Virtual environment is activated
-
-Run:
-
+```bash
 python rag.py
+```
 
-
-You will see:
-
+You'll see:
+```
 RAG Assistant Ready. Type 'exit' to quit.
 
+You:
+```
 
-Ask questions interactively.
+Type your question and press Enter. Type `exit` to quit.
 
-Type exit to close.
+---
 
-💬 Example Usage
+## 💬 Example
 
-If your document contains information about an AI summit:
+**Document contains:** information about an AI summit in India
 
+```
 You: When is the AI summit happening?
 Assistant: The AI Impact Summit India 2026 is scheduled from 16–21 February 2026.
 
-
-If information is not in the documents:
-
+You: Who is the keynote speaker?
 Assistant: I don't know based on the provided documents.
+```
 
-🧠 What is RAG?
+The assistant will never hallucinate outside your documents — if the answer isn't there, it says so.
 
-Retrieval-Augmented Generation (RAG) is an architecture that:
+---
 
-Retrieves relevant documents using embeddings
+## 🔍 How It Works
 
-Injects them into the LLM prompt
+1. Documents in `documents/` are split into overlapping text chunks
+2. Each chunk is converted to a vector embedding using MiniLM
+3. Embeddings are indexed in FAISS for fast similarity search
+4. When you ask a question, it's embedded using the same model
+5. The top-K most similar chunks are retrieved from FAISS
+6. Those chunks + your question are sent to LLaMA3 as context
+7. LLaMA3 generates an answer grounded in the retrieved context
 
-Generates grounded responses
+The LLM's weights are never modified — all knowledge expansion happens through the vector index.
 
-The LLM weights are NOT trained or modified.
+---
 
-Knowledge expansion happens through vector database indexing.
+## 🚀 Possible Improvements
 
-🔍 How It Works Internally
+- Persistent FAISS index (skip re-indexing on restart)
+- Overlapping chunking strategy for better context continuity
+- Hybrid search (BM25 + dense embeddings)
+- Reranker model for improved chunk selection
+- Web UI with FastAPI or Streamlit
+- Conversation memory across turns
+- Agent-based tool usage
 
-Documents are split into chunks
+---
 
-Chunks are converted into embeddings
+## 🎯 What You'll Learn from This Project
 
-Embeddings are stored in FAISS
-
-User query is embedded
-
-Top-k similar chunks are retrieved
-
-Context + query sent to LLaMA3
-
-Answer generated
-
-📈 Possible Improvements
-
-Persistent FAISS index storage
-
-Better chunking with token overlap
-
-Hybrid search (BM25 + embeddings)
-
-Reranker model
-
-Web UI (FastAPI / Streamlit)
-
-Conversation memory
-
-Agent-based tool usage
-
-🎯 Learning Outcomes
-
-This project demonstrates:
-
-Vector similarity search
-
-Embedding-based retrieval
-
-Prompt grounding
-
-Local LLM deployment
-
-Building scalable AI pipelines
+- How vector similarity search works in practice
+- Embedding-based document retrieval
+- Prompt grounding to reduce hallucination
+- Local LLM deployment with Ollama
+- The fundamentals of building a production-ready AI pipeline
