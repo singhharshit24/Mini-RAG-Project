@@ -1,55 +1,40 @@
-# 🧠 Mini RAG — Local Retrieval-Augmented Generation Assistant
+# 🧠 Mini RAG — Flask-Based Local RAG Assistant
 
-A lightweight, fully local RAG system that answers questions grounded strictly in your documents — no cloud, no API keys, no data leaving your machine.
+A fully local **Retrieval-Augmented Generation** web app — upload documents, paste text, ask questions, and get grounded answers. No cloud APIs. No data leaving your machine.
+
+Built with FAISS · SentenceTransformers · Ollama (phi3 / LLaMA3) · Flask · Bootstrap
 
 ---
 
 ## ✨ Features
 
-- **Multi-document support** — drop in as many `.txt` files as you need
-- **Local embeddings** — powered by SentenceTransformers (MiniLM)
-- **FAISS vector search** — fast similarity retrieval over your document chunks
-- **Local LLM** — LLaMA3 via Ollama runs entirely on your hardware
-- **Source tracking** — see exactly which chunks informed each answer
-- **Interactive CLI** — simple question-answer loop, no UI overhead
+- Upload `.txt` documents or paste text directly into the app
+- Automatic re-indexing whenever new content is added
+- Visual indicator showing whether answers came from uploaded files or manual text
+- Loading animation during LLM inference
+- Semantic vector search via FAISS
+- Fully local LLM — no API keys, no internet required
+- Modular backend separating Flask routing from RAG logic
 
 ---
 
 ## 🏗 Architecture
 
 ```
-Text Documents
-      │
-      ▼
-  Chunking
-      │
-      ▼
- Embeddings (MiniLM)
-      │
-      ▼
-  FAISS Index ◄──── User Query ──► Query Embedding
-      │                                    │
-      └──────────► Top-K Chunks ◄──────────┘
-                        │
-                        ▼
-              LLaMA3 via Ollama
-                        │
-                        ▼
-                  Final Answer
+Browser (Bootstrap UI)
+        │
+        ▼
+Flask Web Server (app.py)
+        │
+        ▼
+RAG Core — FAISS + SentenceTransformers (rag_core.py)
+        │
+        ▼
+Ollama — phi3 / LLaMA3
+        │
+        ▼
+Generated Answer
 ```
-
----
-
-## 🛠 Tech Stack
-
-| Component | Tool |
-|---|---|
-| Language | Python 3.8+ |
-| Embeddings | SentenceTransformers (MiniLM) |
-| Vector Search | FAISS |
-| LLM | LLaMA3 |
-| LLM Runtime | Ollama |
-| ML Backend | PyTorch |
 
 ---
 
@@ -58,10 +43,12 @@ Text Documents
 ```
 Mini-RAG-Project/
 │
-├── documents/
-│   └── sample.txt        # Add your .txt files here
+├── documents/            # Uploaded .txt files
+├── templates/
+│   └── index.html        # Frontend UI
 │
-├── rag.py                # Main application
+├── rag_core.py           # Embedding, indexing, and retrieval logic
+├── app.py                # Flask routes and server
 ├── requirements.txt
 └── README.md
 ```
@@ -87,85 +74,88 @@ rag_env\Scripts\activate
 source rag_env/bin/activate
 ```
 
-### 3. Install Python dependencies
+### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Install Ollama and pull LLaMA3
+### 4. Install Ollama and pull a model
 
-Download Ollama from [ollama.com](https://ollama.com), then run:
+Download from [ollama.com](https://ollama.com), then choose based on your available RAM:
+
+| RAM    | Recommended Model | Command               |
+|--------|-------------------|-----------------------|
+| 8 GB   | phi3              | `ollama pull phi3`    |
+| 16 GB+ | LLaMA3            | `ollama pull llama3`  |
+
+---
+
+## ▶️ Running the App
+
 ```bash
-ollama pull llama3
+python app.py
+```
+
+Open your browser at **http://127.0.0.1:5000**
+
+---
+
+## 📄 Usage
+
+1. **Add knowledge** — upload a `.txt` file or paste text directly into the manual input field
+2. The system chunks and re-indexes your content automatically
+3. A source indicator shows whether retrieved context came from a file or manual text
+4. **Ask a question** — a loading animation plays while the LLM processes your query
+5. The answer is generated strictly from the retrieved context
+
+If the information isn't in your documents:
+```
+I don't know based on the provided documents.
 ```
 
 ---
 
-## ▶️ Running the Assistant
+## ⚠️ Important Notes
 
-Make sure your `documents/` folder contains at least one `.txt` file and your virtual environment is active, then:
-
-```bash
-python rag.py
+**Flask debug mode** — disable it to prevent threading conflicts with local LLM inference:
+```python
+app.run(debug=False, use_reloader=False)
 ```
 
-You'll see:
-```
-RAG Assistant Ready. Type 'exit' to quit.
-
-You:
-```
-
-Type your question and press Enter. Type `exit` to quit.
-
----
-
-## 💬 Example
-
-**Document contains:** information about an AI summit in India
-
-```
-You: When is the AI summit happening?
-Assistant: The AI Impact Summit India 2026 is scheduled from 16–21 February 2026.
-
-You: Who is the keynote speaker?
-Assistant: I don't know based on the provided documents.
-```
-
-The assistant will never hallucinate outside your documents — if the answer isn't there, it says so.
+**Out-of-memory errors** — if you see `model requires more system memory`, switch to `phi3`, close other heavy applications, and consider reducing the retrieval parameter `k` in `rag_core.py`.
 
 ---
 
 ## 🔍 How It Works
 
-1. Documents in `documents/` are split into overlapping text chunks
-2. Each chunk is converted to a vector embedding using MiniLM
-3. Embeddings are indexed in FAISS for fast similarity search
-4. When you ask a question, it's embedded using the same model
-5. The top-K most similar chunks are retrieved from FAISS
-6. Those chunks + your question are sent to LLaMA3 as context
-7. LLaMA3 generates an answer grounded in the retrieved context
+1. Documents and pasted text are split into chunks
+2. Each chunk is embedded using SentenceTransformers (MiniLM)
+3. Embeddings are stored in a FAISS index
+4. Your query is embedded with the same model
+5. The top-K most similar chunks are retrieved
+6. Those chunks + your question are sent to the LLM as context
+7. The LLM generates an answer grounded strictly in that context
 
-The LLM's weights are never modified — all knowledge expansion happens through the vector index.
+The model's weights are never modified — all knowledge expansion happens through the vector index.
 
 ---
 
-## 🚀 Possible Improvements
+## 🚀 Future Improvements
 
-- Persistent FAISS index (skip re-indexing on restart)
-- Overlapping chunking strategy for better context continuity
+- Persistent FAISS index (save and reload across restarts)
+- Chat-style conversation UI with memory
+- Streaming responses for real-time output
+- In-app document viewer
 - Hybrid search (BM25 + dense embeddings)
-- Reranker model for improved chunk selection
-- Web UI with FastAPI or Streamlit
-- Conversation memory across turns
-- Agent-based tool usage
+- User authentication
+- Docker containerization and cloud VM deployment
 
 ---
 
 ## 🎯 What You'll Learn from This Project
 
-- How vector similarity search works in practice
+- Semantic search and vector indexing with FAISS
 - Embedding-based document retrieval
-- Prompt grounding to reduce hallucination
-- Local LLM deployment with Ollama
-- The fundamentals of building a production-ready AI pipeline
+- Local LLM deployment and integration with Ollama
+- Modular Flask backend architecture
+- Building a full-stack AI web application
